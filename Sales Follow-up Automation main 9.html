@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FollowFlow — Sales Follow-up CRM</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.0/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+* { box-sizing: border-box; }
+html, body { margin:0; padding:0; }
+body { font-family:'Inter',sans-serif; }
+h1,h2,h3,h4 { font-family:'Sora',sans-serif; margin:0; letter-spacing:-0.01em; }
+.mono { font-family:'JetBrains Mono',monospace; font-size:13px; }
+button { font-family:'Inter',sans-serif; cursor:pointer; }
+input, select { font-family:'Inter',sans-serif; }
+
+.app-root { --radius: 16px; display:flex; min-height:100vh; background: var(--bg-gradient); color: var(--text); transition: background .3s ease, color .3s ease; }
+
+[data-theme="dark"] {
+  --bg-gradient: radial-gradient(circle at 15% -5%, rgba(59,130,246,0.14), transparent 42%), radial-gradient(circle at 85% 105%, rgba(255,180,84,0.09), transparent 42%), #0A0E16;
+  --surface: rgba(255,255,255,0.045);
+  --surface-strong: rgba(255,255,255,0.09);
+  --border: rgba(255,255,255,0.10);
+  --text: #EDEFF7;
+  --text-muted: #8B93A7;
+  --shadow: 0 10px 34px rgba(0,0,0,0.5);
+  --tooltip-bg: #161B29;
+  --input-bg: rgba(255,255,255,0.05);
+}
+[data-theme="light"] {
+  --bg-gradient: radial-gradient(circle at 15% -5%, rgba(59,130,246,0.10), transparent 42%), radial-gradient(circle at 85% 105%, rgba(255,180,84,0.10), transparent 42%), #EEF1F8;
+  --surface: rgba(255,255,255,0.62);
+  --surface-strong: rgba(255,255,255,0.88);
+  --border: rgba(20,25,40,0.09);
+  --text: #171B26;
+  --text-muted: #5B6272;
+  --shadow: 0 10px 30px rgba(30,41,59,0.12);
+  --tooltip-bg: #FFFFFF;
+  --input-bg: rgba(20,25,40,0.035);
+}
+
+.glass-card { background: var(--surface); backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px); border:1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); position:relative; }
+.glass-hover { transition: transform .25s ease, box-shadow .25s ease; }
+.glass-hover:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.16), var(--shadow); }
+.pad-lg { padding:22px; }
+.pad-none { padding:0; overflow:hidden; }
+
+.sidebar { width:230px; flex-shrink:0; display:flex; flex-direction:column; padding:20px 14px; border-right:1px solid var(--border); background: var(--surface); backdrop-filter: blur(20px); transition: width .25s ease; }
+.sidebar-collapsed { width:74px; }
+.brand { display:flex; align-items:center; gap:10px; padding:0 8px 22px 8px; }
+.brand-mark { width:32px; height:32px; border-radius:10px; background: linear-gradient(135deg,#3B82F6,#A855F7); display:flex; align-items:center; justify-content:center; color:white; box-shadow: 0 6px 16px rgba(139,92,246,0.35); }
+.brand-name { font-family:'Sora',sans-serif; font-weight:700; font-size:16px; }
+.nav { display:flex; flex-direction:column; gap:4px; flex:1; }
+.nav-item { display:flex; align-items:center; gap:12px; padding:10px 12px; border-radius:11px; border:none; background:transparent; color: var(--text-muted); font-size:14px; font-weight:500; text-align:left; position:relative; transition: background .2s ease, color .2s ease; }
+.nav-item:hover { background: var(--surface-strong); color: var(--text); }
+.nav-active { background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(168,85,247,0.14)); color: var(--text); box-shadow: inset 0 0 0 1px rgba(168,85,247,0.25); }
+.nav-badge { margin-left:auto; background:#FFB454; color:#2A1B00; font-size:11px; font-weight:700; padding:1px 7px; border-radius:20px; }
+.collapse-btn { border:none; background: var(--surface-strong); color: var(--text-muted); border-radius:10px; padding:8px; align-self:flex-start; }
+
+.main-col { flex:1; display:flex; flex-direction:column; min-width:0; }
+.topbar { display:flex; align-items:center; justify-content:space-between; padding:20px 28px; }
+.page-title { font-size:22px; font-weight:700; }
+.page-sub { color: var(--text-muted); font-size:13px; margin-top:2px; }
+.topbar-actions { display:flex; align-items:center; gap:10px; }
+.notif-wrap { position:relative; }
+.notif-dot { position:absolute; top:6px; right:6px; width:6px; height:6px; border-radius:50%; background:#F87171; }
+.notif-dropdown { position:absolute; right:0; top:44px; width:280px; background: var(--tooltip-bg); border:1px solid var(--border); border-radius:14px; box-shadow: var(--shadow); padding:10px; z-index:40; }
+.notif-head { font-weight:600; font-size:13px; padding:4px 6px 8px; }
+.notif-item { display:flex; gap:10px; padding:8px 6px; border-radius:9px; }
+.notif-item:hover { background: var(--surface-strong); }
+.user-chip { display:flex; align-items:center; gap:9px; padding:6px 10px 6px 6px; border-radius:30px; background: var(--surface-strong); border:1px solid var(--border); }
+.user-chip-text { display:flex; flex-direction:column; line-height:1.25; }
+
+.content { flex:1; padding:6px 28px 32px; overflow-y:auto; }
+.view-stack { display:flex; flex-direction:column; gap:20px; }
+
+.stat-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(155px,1fr)); gap:14px; }
+.stat-card { padding:16px 18px; }
+.stat-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.stat-icon { width:30px; height:30px; border-radius:9px; background: var(--surface-strong); display:flex; align-items:center; justify-content:center; }
+.stat-delta { display:flex; align-items:center; }
+.stat-up { color:#34D399; } .stat-down { color:#F87171; }
+.stat-value { font-family:'JetBrains Mono',monospace; font-size:24px; font-weight:600; }
+.stat-label { font-size:12.5px; color: var(--text-muted); margin-top:4px; }
+.stat-sub { font-size:11px; color: var(--text-muted); opacity:.8; margin-top:6px; }
+
+.dash-grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; }
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+@media (max-width: 1100px) { .dash-grid { grid-template-columns: 1fr; } .span-2, .span-3 { grid-column: span 1; } }
+
+.card-head { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; flex-wrap:wrap; gap:6px; }
+.card-head h3 { font-size:15px; }
+.muted-sm { font-size:12px; color: var(--text-muted); }
+
+.legend-wrap { display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:12px; color: var(--text-muted); }
+.legend-dot { width:8px; height:8px; border-radius:50%; }
+
+.mini-list { display:flex; flex-direction:column; gap:2px; }
+.mini-row { display:flex; align-items:center; gap:11px; padding:9px 4px; border-bottom:1px solid var(--border); }
+.mini-row:last-child { border-bottom:none; }
+.mini-icon { width:28px; height:28px; border-radius:9px; background: color-mix(in srgb, var(--c, #888) 18%, transparent); color: var(--c,#888); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.mini-icon-lg { width:34px; height:34px; border-radius:10px; }
+.mini-body { display:flex; flex-direction:column; min-width:0; flex:1; }
+.mini-title { font-size:13.5px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mini-sub { font-size:11.5px; color: var(--text-muted); }
+
+.chip-btn { border:1px solid var(--border); background: var(--surface-strong); padding:5px 11px; border-radius:20px; font-size:12px; font-weight:500; color: var(--text); }
+.chip-btn-muted { opacity:.7; }
+
+.toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.toolbar-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.search-box { display:flex; align-items:center; gap:8px; background: var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:9px 13px; min-width:260px; color: var(--text-muted); }
+.search-box input { border:none; background:transparent; outline:none; color:var(--text); font-size:13.5px; width:100%; }
+.pill-filter { display:flex; align-items:center; gap:8px; background: var(--input-bg); border:1px solid var(--border); border-radius:12px; padding:8px 12px; color: var(--text-muted); }
+.pill-filter select { border:none; background:transparent; color:var(--text); outline:none; font-size:13px; }
+
+.btn-primary, .btn-ghost { display:inline-flex; align-items:center; gap:7px; border-radius:11px; padding:9px 15px; font-size:13.5px; font-weight:600; border:1px solid transparent; }
+.btn-primary { background: linear-gradient(135deg,#3B82F6,#A855F7); color:white; box-shadow: 0 8px 20px rgba(139,92,246,0.3); }
+.btn-primary:hover { filter: brightness(1.08); }
+.btn-ghost { background: var(--surface-strong); border-color: var(--border); color: var(--text); }
+.btn-ghost:hover { background: var(--surface); }
+
+.data-table { width:100%; border-collapse:collapse; }
+.data-table th { text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:.04em; color: var(--text-muted); padding:14px 18px; border-bottom:1px solid var(--border); }
+.data-table td { padding:12px 18px; border-bottom:1px solid var(--border); font-size:13.5px; vertical-align:middle; }
+.data-table tr:last-child td { border-bottom:none; }
+.cell-link { display:flex; align-items:center; gap:10px; border:none; background:transparent; text-align:left; }
+.cell-main { display:flex; flex-direction:column; }
+.cell-title { font-weight:600; font-size:13.5px; }
+.cell-sub { font-size:11.5px; color: var(--text-muted); }
+.avatar { width:32px; height:32px; border-radius:50%; background: linear-gradient(135deg,#3B82F6,#EC7BAE); color:white; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+.avatar-lg { width:52px; height:52px; font-size:16px; }
+.avatar-xs { width:22px; height:22px; font-size:10px; }
+.tag-chip { display:inline-flex; align-items:center; gap:4px; background: var(--surface-strong); border:1px solid var(--border); padding:2px 9px; border-radius:20px; font-size:11px; margin-right:5px; color: var(--text-muted); }
+.row-actions { display:flex; gap:6px; }
+.icon-btn { width:30px; height:30px; border-radius:9px; border:1px solid var(--border); background: var(--surface-strong); color: var(--text); display:flex; align-items:center; justify-content:center; position:relative; }
+.icon-btn:hover { background: var(--surface); }
+.icon-btn-danger:hover { color:#F87171; border-color:#F87171; }
+
+.status-badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color: var(--c); background: color-mix(in srgb, var(--c) 16%, transparent); padding:4px 10px; border-radius:20px; }
+.status-dot { width:7px; height:7px; border-radius:50%; background: currentColor; }
+
+.pill { font-size:11px; font-weight:600; padding:3px 9px; border-radius:20px; text-transform:capitalize; }
+.pill-pending { background: rgba(168,85,247,.16); color:#A855F7; }
+.pill-sent { background: rgba(59,130,246,.16); color:#3B82F6; }
+.pill-completed { background: rgba(52,211,153,.16); color:#34D399; }
+.pill-skipped { background: rgba(100,116,139,.2); color:#8B93A7; }
+.pill-inbound { background: rgba(52,211,153,.16); color:#34D399; }
+.pill-outbound { background: rgba(59,130,246,.16); color:#3B82F6; }
+
+.score-ring { position:relative; width:38px; height:38px; display:flex; align-items:center; justify-content:center; }
+.score-num { position:absolute; font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; }
+
+.kanban { display:grid; grid-template-columns: repeat(6, minmax(170px,1fr)); gap:12px; overflow-x:auto; }
+.kanban-col { display:flex; flex-direction:column; gap:10px; min-width:170px; }
+.kanban-head { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color: var(--c); padding:2px 4px; }
+.kanban-count { margin-left:auto; background: var(--surface-strong); color: var(--text-muted); font-size:11px; padding:1px 8px; border-radius:20px; }
+.kanban-body { display:flex; flex-direction:column; gap:10px; min-height:60px; }
+.lead-card { background: var(--surface); border:1px solid var(--border); border-radius:13px; padding:12px; cursor:grab; box-shadow: var(--shadow); transition: transform .2s ease; }
+.lead-card:hover { transform: translateY(-2px); }
+.lead-card-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+.lead-name { font-size:13px; font-weight:600; }
+.lead-company { display:flex; align-items:center; gap:5px; font-size:11.5px; color: var(--text-muted); margin-bottom:10px; }
+.lead-card-bottom { display:flex; justify-content:space-between; align-items:center; }
+.lead-value { font-size:11.5px; color: var(--text-muted); }
+
+.modal-backdrop { position:fixed; inset:0; background: rgba(5,8,15,0.55); backdrop-filter: blur(4px); display:flex; align-items:center; justify-content:center; z-index:100; padding:20px; }
+.modal-panel { width:480px; max-width:100%; max-height:86vh; overflow-y:auto; background: var(--tooltip-bg); border:1px solid var(--border); border-radius:18px; box-shadow: 0 24px 60px rgba(0,0,0,0.35); }
+.modal-wide { width:640px; }
+.modal-head { display:flex; justify-content:space-between; align-items:center; padding:18px 22px; border-bottom:1px solid var(--border); }
+.modal-head h3 { font-size:16px; }
+.modal-body { padding:20px 22px 24px; }
+
+.form-grid { display:flex; flex-direction:column; gap:14px; }
+.field { display:flex; flex-direction:column; gap:6px; font-size:13px; }
+.field-label { font-weight:600; color: var(--text-muted); font-size:12px; }
+.field input, .field select { padding:10px 12px; border-radius:10px; border:1px solid var(--border); background: var(--input-bg); color: var(--text); font-size:13.5px; outline:none; }
+.field input:focus, .field select:focus { border-color:#A855F7; }
+.check-row { display:flex; flex-direction:column; gap:8px; }
+.check-label { display:flex; align-items:center; gap:8px; font-size:13px; color: var(--text-muted); }
+.form-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:6px; }
+
+.profile-head { display:flex; align-items:center; gap:14px; padding-bottom:16px; border-bottom:1px solid var(--border); margin-bottom:16px; }
+.profile-name { font-size:16px; font-weight:700; }
+.profile-meta { font-size:12.5px; color: var(--text-muted); margin-top:2px; }
+.profile-value { margin-left:auto; text-align:right; font-family:'JetBrains Mono',monospace; font-size:16px; font-weight:600; display:flex; flex-direction:column; }
+.profile-value .muted-sm { font-family:'Inter',sans-serif; font-weight:400; }
+.sub-head { font-size:12px; text-transform:uppercase; letter-spacing:.04em; color: var(--text-muted); margin:16px 0 8px; }
+
+.lead-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+.lead-score-row { display:flex; align-items:center; gap:14px; padding:12px; background: var(--surface-strong); border-radius:12px; margin-bottom:6px; }
+.quick-actions { display:flex; gap:8px; margin-top:16px; }
+
+.tabs { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.tabs-inline { background: var(--surface-strong); padding:4px; border-radius:12px; display:inline-flex; }
+.tab { border:none; background:transparent; color: var(--text-muted); font-size:13px; font-weight:600; padding:9px 15px; border-radius:9px; display:flex; align-items:center; gap:6px; }
+.tab-active { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.tab-spacer { flex:1; }
+
+.rule-list { display:flex; flex-direction:column; gap:10px; }
+.rule-card { display:flex; align-items:center; gap:12px; padding:14px 16px; cursor:grab; }
+.grip { color: var(--text-muted); flex-shrink:0; }
+.rule-zap { color:#FFB454; flex-shrink:0; }
+.rule-text { flex:1; font-size:13.5px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.rule-if { color:#3B82F6; font-weight:700; }
+.rule-then { color:#A855F7; font-weight:700; }
+
+.toggle { width:38px; height:22px; border-radius:20px; background: var(--surface-strong); border:1px solid var(--border); position:relative; flex-shrink:0; transition: background .2s ease; }
+.toggle-on { background: linear-gradient(135deg,#3B82F6,#A855F7); border-color:transparent; }
+.toggle-knob { position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%; background:white; transition: transform .2s ease; box-shadow:0 1px 3px rgba(0,0,0,0.3); }
+.toggle-on .toggle-knob { transform: translateX(16px); }
+
+.timeline { display:flex; flex-direction:column; gap:10px; }
+.timeline-item { display:flex; gap:13px; padding:15px; }
+.timeline-body { flex:1; min-width:0; }
+.timeline-top { display:flex; align-items:center; gap:9px; margin-bottom:4px; flex-wrap:wrap; }
+.timeline-text { font-size:13.5px; color: var(--text); margin:4px 0 6px; line-height:1.5; }
+
+.big-metric { font-family:'JetBrains Mono',monospace; font-size:34px; font-weight:700; margin:6px 0; }
+
+.settings-row { display:flex; justify-content:space-between; align-items:center; padding:14px 0; border-bottom:1px solid var(--border); gap:14px; flex-wrap:wrap; }
+.settings-row:last-child { border-bottom:none; }
+.role-switch { display:flex; gap:4px; background: var(--surface-strong); padding:4px; border-radius:11px; }
+
+.integration-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(190px,1fr)); gap:12px; }
+.integration-card { border:1px solid var(--border); background: var(--surface-strong); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:6px; }
+.integration-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+
+.team-list { display:flex; flex-direction:column; }
+
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:44px 20px; color: var(--text-muted); text-align:center; }
+.empty-title { font-weight:600; color: var(--text); font-size:14px; }
+.empty-body { font-size:12.5px; max-width:280px; }
+
+.chart-box { position:relative; width:100%; }
+
+.toast-stack { position:fixed; bottom:22px; right:22px; display:flex; flex-direction:column; gap:8px; z-index:200; }
+.toast { display:flex; align-items:center; gap:8px; background: var(--tooltip-bg); border:1px solid var(--border); color: var(--text); padding:11px 16px; border-radius:12px; box-shadow: 0 12px 30px rgba(0,0,0,0.25); font-size:13px; animation: slideIn .25s ease; }
+@keyframes slideIn { from { transform: translateX(20px); opacity:0; } to { transform: translateX(0); opacity:1; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react,env">
+const { useState, useMemo, useRef, useEffect } = React;
+
+/* ---------------------------------------------------------------
+   ICONS (self-contained, no external icon library needed)
+--------------------------------------------------------------- */
+function makeIcon(children) {
+  return function IconCmp({ size = 16, style, className }) {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={style} className={className}>
+        {children}
+      </svg>
+    );
+  };
+}
+
+const Users = makeIcon(<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>);
+const Target = makeIcon(<><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></>);
+const Clock = makeIcon(<><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></>);
+const MessageSquare = makeIcon(<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>);
+const MessageCircle = makeIcon(<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>);
+const BarChart3 = makeIcon(<><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></>);
+const SettingsIcon = makeIcon(<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>);
+const LayoutDashboard = makeIcon(<><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></>);
+const Search = makeIcon(<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>);
+const Plus = makeIcon(<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>);
+const Pencil = makeIcon(<path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>);
+const Trash2 = makeIcon(<><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></>);
+const Upload = makeIcon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/></>);
+const Download = makeIcon(<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></>);
+const Sun = makeIcon(<><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></>);
+const Moon = makeIcon(<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>);
+const Bell = makeIcon(<><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>);
+const Mail = makeIcon(<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>);
+const Phone = makeIcon(<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>);
+const Calendar = makeIcon(<><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></>);
+const CheckCircle2 = makeIcon(<><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/></>);
+const Filter = makeIcon(<polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/>);
+const X = makeIcon(<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>);
+const Zap = makeIcon(<polygon points="13,2 3,14 12,14 11,22 21,10 12,10"/>);
+const TrendingUp = makeIcon(<><polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/></>);
+const DollarSign = makeIcon(<><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></>);
+const FileText = makeIcon(<><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></>);
+const Link2 = makeIcon(<><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></>);
+const Building2 = makeIcon(<><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18"/><path d="M2 22h20"/><line x1="9" y1="6" x2="10" y2="6"/><line x1="9" y1="10" x2="10" y2="10"/><line x1="9" y1="14" x2="10" y2="14"/><line x1="14" y1="6" x2="15" y2="6"/><line x1="14" y1="10" x2="15" y2="10"/><line x1="14" y1="14" x2="15" y2="14"/></>);
+const Menu = makeIcon(<><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>);
+const Shield = makeIcon(<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>);
+const Activity = makeIcon(<polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>);
+const Paperclip = makeIcon(<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>);
+const ChevronRight = makeIcon(<polyline points="9,18 15,12 9,6"/>);
+const GripVertical = makeIcon(<><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></>);
+const ArrowUpRight = makeIcon(<><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7,7 17,7 17,17"/></>);
+const ArrowDownRight = makeIcon(<><line x1="7" y1="7" x2="17" y2="17"/><polyline points="17,7 17,17 7,17"/></>);
+
+/* ---------------------------------------------------------------
+   TOKENS & MOCK DATA
+--------------------------------------------------------------- */
+
+const STATUS = ["New", "Contacted", "Interested", "Qualified", "Won", "Lost"];
+const STATUS_COLOR = { New: "#3B82F6", Contacted: "#7C6CF0", Interested: "#A855F7", Qualified: "#EC7BAE", Won: "#FFB454", Lost: "#64748B" };
+const CHANNEL_ICON = { Email: Mail, SMS: MessageCircle, WhatsApp: MessageSquare, Call: Phone, Meeting: Calendar };
+const CHANNEL_COLOR = { Email: "#3B82F6", SMS: "#A855F7", WhatsApp: "#34D399", Call: "#EC7BAE", Meeting: "#FFB454" };
+const THEME_CHART = {
+  dark: { text: "#EDEFF7", muted: "#8B93A7", grid: "rgba(255,255,255,0.08)", tooltipBg: "#161B29" },
+  light: { text: "#171B26", muted: "#5B6272", grid: "rgba(20,25,40,0.08)", tooltipBg: "#FFFFFF" },
+};
+
+const SALESPEOPLE = ["Spandan Parhi", "Marcus Chen", "Priya Nair", "Diego Ruiz"];
+
+const CUSTOMERS = [
+  { id: "C001", name: "Rohan Mehta", email: "rohan.mehta@vertexbuild.com", phone: "+91 98200 11234", company: "Vertex Build Co.", tags: ["Enterprise"], createdAt: "2025-11-02", lastContact: "2026-06-28", value: 482000 },
+  { id: "C002", name: "Sara Lindqvist", email: "sara.l@novapeak.io", phone: "+46 70 123 4455", company: "NovaPeak Analytics", tags: ["SMB"], createdAt: "2026-01-14", lastContact: "2026-07-01", value: 96000 },
+  { id: "C003", name: "James Okafor", email: "j.okafor@brightlanetrade.com", phone: "+234 802 331 9087", company: "Brightlane Trading", tags: ["Renewal"], createdAt: "2025-08-22", lastContact: "2026-06-15", value: 214000 },
+  { id: "C004", name: "Meiling Zhou", email: "meiling.zhou@harboredge.cn", phone: "+86 138 0013 8000", company: "Harbor Edge Logistics", tags: ["Enterprise"], createdAt: "2025-12-05", lastContact: "2026-06-30", value: 610000 },
+  { id: "C005", name: "Liam O'Connell", email: "liam@fernhillretail.ie", phone: "+353 87 234 5566", company: "Fernhill Retail", tags: ["E-commerce"], createdAt: "2026-02-19", lastContact: "2026-06-20", value: 58000 },
+  { id: "C006", name: "Fatima Al-Sayed", email: "fatima@duneworks.ae", phone: "+971 50 123 6789", company: "Duneworks Interiors", tags: ["SMB"], createdAt: "2026-03-11", lastContact: "2026-06-25", value: 133000 },
+  { id: "C007", name: "Carlos Medina", email: "carlos.medina@altiplano.mx", phone: "+52 55 4433 2211", company: "Altiplano Foods", tags: ["Renewal"], createdAt: "2025-09-30", lastContact: "2026-07-02", value: 178000 },
+  { id: "C008", name: "Grace Kim", email: "grace.kim@lumenpath.co", phone: "+82 10 4455 7788", company: "LumenPath Studio", tags: ["Enterprise"], createdAt: "2026-04-08", lastContact: "2026-06-29", value: 340000 },
+];
+
+const LEADS = [
+  { id: "L001", customer: "Rohan Mehta", company: "Vertex Build Co.", status: "Qualified", score: 82, assigned: "Spandan Parhi", source: "Referral", value: 120000, lastActivity: "2026-06-28" },
+  { id: "L002", customer: "Sara Lindqvist", company: "NovaPeak Analytics", status: "New", score: 41, assigned: "Marcus Chen", source: "Website", value: 36000, lastActivity: "2026-07-01" },
+  { id: "L003", customer: "James Okafor", company: "Brightlane Trading", status: "Interested", score: 68, assigned: "Priya Nair", source: "Trade Show", value: 74000, lastActivity: "2026-06-24" },
+  { id: "L004", customer: "Meiling Zhou", company: "Harbor Edge Logistics", status: "Won", score: 95, assigned: "Spandan Parhi", source: "Referral", value: 210000, lastActivity: "2026-06-30" },
+  { id: "L005", customer: "Liam O'Connell", company: "Fernhill Retail", status: "Contacted", score: 54, assigned: "Diego Ruiz", source: "Ad Campaign", value: 22000, lastActivity: "2026-06-27" },
+  { id: "L006", customer: "Fatima Al-Sayed", company: "Duneworks Interiors", status: "Interested", score: 61, assigned: "Priya Nair", source: "Website", value: 45000, lastActivity: "2026-06-25" },
+  { id: "L007", customer: "Carlos Medina", company: "Altiplano Foods", status: "Qualified", score: 77, assigned: "Marcus Chen", source: "Referral", value: 60000, lastActivity: "2026-07-02" },
+  { id: "L008", customer: "Grace Kim", company: "LumenPath Studio", status: "Lost", score: 29, assigned: "Diego Ruiz", source: "Cold Outreach", value: 88000, lastActivity: "2026-06-18" },
+  { id: "L009", customer: "Noor Hassan", company: "Cedarline Exports", status: "New", score: 33, assigned: "Spandan Parhi", source: "Website", value: 18000, lastActivity: "2026-07-03" },
+  { id: "L010", customer: "Tomás Ferreira", company: "Rioverde Energy", status: "Contacted", score: 58, assigned: "Marcus Chen", source: "Trade Show", value: 92000, lastActivity: "2026-06-29" },
+];
+
+const FOLLOWUPS = [
+  { id: "F001", customer: "Sara Lindqvist", channel: "Email", scheduledFor: "2026-07-05 09:00", status: "Pending", delay: "3 days", repeat: true, skipWeekends: true, note: "Intro follow-up after demo request" },
+  { id: "F002", customer: "Liam O'Connell", channel: "WhatsApp", scheduledFor: "2026-07-05 11:30", status: "Pending", delay: "1 day", repeat: false, skipWeekends: true, note: "Cart abandoned — nudge with discount" },
+  { id: "F003", customer: "James Okafor", channel: "Call", scheduledFor: "2026-07-05 15:00", status: "Pending", delay: "7 days", repeat: true, skipWeekends: false, note: "No reply after proposal sent" },
+  { id: "F004", customer: "Carlos Medina", channel: "Email", scheduledFor: "2026-07-06 09:00", status: "Pending", delay: "15 days", repeat: false, skipWeekends: true, note: "Renewal reminder — contract ends in 20 days" },
+  { id: "F005", customer: "Fatima Al-Sayed", channel: "SMS", scheduledFor: "2026-07-04 10:00", status: "Sent", delay: "3 days", repeat: true, skipWeekends: true, note: "Check-in after site visit" },
+  { id: "F006", customer: "Meiling Zhou", channel: "Email", scheduledFor: "2026-07-03 09:00", status: "Completed", delay: "1 day", repeat: false, skipWeekends: true, note: "Thank-you note after contract signed" },
+  { id: "F007", customer: "Grace Kim", channel: "Email", scheduledFor: "2026-06-20 09:00", status: "Skipped", delay: "30 days", repeat: false, skipWeekends: true, note: "Re-engagement — marked Lost" },
+  { id: "F008", customer: "Rohan Mehta", channel: "Meeting", scheduledFor: "2026-07-07 14:00", status: "Pending", delay: "custom", repeat: false, skipWeekends: true, note: "Product demo — auto-scheduled (Interested rule)" },
+];
+
+const AUTOMATIONS = [
+  { id: "A1", enabled: true, trigger: "No reply in 3 days", action: "Send Reminder 1 (Email)" },
+  { id: "A2", enabled: true, trigger: "No reply in 7 days", action: "Send Reminder 2 (SMS)" },
+  { id: "A3", enabled: true, trigger: "No reply in 15 days", action: "Notify salesperson" },
+  { id: "A4", enabled: true, trigger: "Purchase completed", action: "Send thank-you email" },
+  { id: "A5", enabled: false, trigger: "Subscription nearing expiry", action: "Send renewal reminder" },
+  { id: "A6", enabled: true, trigger: "Lead marked \u201cInterested\u201d", action: "Schedule product demo" },
+  { id: "A7", enabled: false, trigger: "Customer birthday", action: "Send birthday greeting" },
+  { id: "A8", enabled: true, trigger: "Cart abandoned 24h", action: "Send WhatsApp nudge" },
+];
+
+const COMMS = [
+  { id: "H1", customer: "Rohan Mehta", channel: "Email", direction: "Outbound", content: "Sent revised proposal with updated pricing tiers for Q3 rollout.", timestamp: "2026-06-28 10:12", attachment: "proposal_v3.pdf" },
+  { id: "H2", customer: "Rohan Mehta", channel: "Call", direction: "Inbound", content: "Discussed timeline concerns, requested a demo for the ops team.", timestamp: "2026-06-26 16:40", attachment: null },
+  { id: "H3", customer: "Sara Lindqvist", channel: "Email", direction: "Outbound", content: "Introductory email after website demo request, included case study.", timestamp: "2026-07-01 09:05", attachment: "case_study.pdf" },
+  { id: "H4", customer: "James Okafor", channel: "Meeting", direction: "Outbound", content: "On-site meeting to review contract renewal terms and volume discounts.", timestamp: "2026-06-24 13:00", attachment: "meeting_notes.docx" },
+  { id: "H5", customer: "Meiling Zhou", channel: "Email", direction: "Inbound", content: "Confirmed signature on contract, asked about onboarding timeline.", timestamp: "2026-06-30 08:22", attachment: "signed_contract.pdf" },
+  { id: "H6", customer: "Liam O'Connell", channel: "WhatsApp", direction: "Outbound", content: "Reminder about items left in cart, offered 10% completion discount.", timestamp: "2026-06-27 12:15", attachment: null },
+  { id: "H7", customer: "Fatima Al-Sayed", channel: "SMS", direction: "Outbound", content: "Quick check-in following last week's site visit and material samples.", timestamp: "2026-06-25 11:00", attachment: null },
+  { id: "H8", customer: "Grace Kim", channel: "Email", direction: "Outbound", content: "Final re-engagement attempt before marking opportunity as closed-lost.", timestamp: "2026-06-18 09:30", attachment: null },
+  { id: "H9", customer: "Carlos Medina", channel: "Call", direction: "Inbound", content: "Asked for a call back next week to finalize renewal quantities.", timestamp: "2026-07-02 15:50", attachment: null },
+];
+
+const INTEGRATIONS = [
+  { id: "I1", name: "Gmail", desc: "Send and track follow-up emails", connected: true },
+  { id: "I2", name: "Outlook", desc: "Sync email threads and calendar", connected: false },
+  { id: "I3", name: "WhatsApp Business API", desc: "Automated WhatsApp reminders", connected: true },
+  { id: "I4", name: "Twilio SMS", desc: "SMS reminders and alerts", connected: true },
+  { id: "I5", name: "Google Calendar", desc: "Sync demos and meetings", connected: false },
+  { id: "I6", name: "CRM Systems", desc: "Two-way sync with external CRM", connected: false },
+  { id: "I7", name: "Zapier", desc: "Connect to 5,000+ apps", connected: true },
+  { id: "I8", name: "Slack", desc: "Team alerts for hot leads", connected: false },
+];
+
+const ACTIVITY_LOG = [
+  { id: "AL1", user: "Spandan Parhi", action: "Moved lead 'Vertex Build Co.' to Qualified", time: "2026-07-05 08:12" },
+  { id: "AL2", user: "System", action: "Auto-sent Reminder 1 email to Sara Lindqvist", time: "2026-07-04 09:00" },
+  { id: "AL3", user: "Marcus Chen", action: "Added new customer NovaPeak Analytics", time: "2026-07-01 09:02" },
+  { id: "AL4", user: "Priya Nair", action: "Logged meeting notes for Brightlane Trading", time: "2026-06-24 13:05" },
+  { id: "AL5", user: "System", action: "Notified Diego Ruiz — no reply in 15 days (LumenPath)", time: "2026-06-19 09:00" },
+];
+
+const REVENUE_TREND = [
+  { month: "Feb", revenue: 210000, target: 220000 },
+  { month: "Mar", revenue: 248000, target: 230000 },
+  { month: "Apr", revenue: 265000, target: 250000 },
+  { month: "May", revenue: 291000, target: 270000 },
+  { month: "Jun", revenue: 338000, target: 300000 },
+  { month: "Jul", revenue: 172000, target: 320000 },
+];
+
+const RESPONSE_RATE = [
+  { channel: "Email", rate: 34 },
+  { channel: "SMS", rate: 58 },
+  { channel: "WhatsApp", rate: 71 },
+  { channel: "Call", rate: 46 },
+];
+
+const money = (n) => "$" + n.toLocaleString("en-US");
+const initials = (name) => name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+
+/* ---------------------------------------------------------------
+   CHART.JS WRAPPER COMPONENTS
+--------------------------------------------------------------- */
+
+function useChart(buildConfig, deps) {
+  const canvasRef = useRef(null);
+  const chartRef = useRef(null);
+  useEffect(() => {
+    if (!canvasRef.current) return;
+    if (chartRef.current) chartRef.current.destroy();
+    chartRef.current = new Chart(canvasRef.current.getContext("2d"), buildConfig());
+    return () => { if (chartRef.current) chartRef.current.destroy(); };
+    // eslint-disable-next-line
+  }, deps);
+  return canvasRef;
+}
+
+function RevenueChart({ theme, height }) {
+  const c = THEME_CHART[theme];
+  const ref = useChart(() => ({
+    type: "line",
+    data: {
+      labels: REVENUE_TREND.map((d) => d.month),
+      datasets: [
+        { label: "Revenue", data: REVENUE_TREND.map((d) => d.revenue), borderColor: "#A855F7", backgroundColor: "rgba(168,85,247,0.25)", fill: true, tension: 0.35, pointRadius: 0, borderWidth: 2.5 },
+        { label: "Target", data: REVENUE_TREND.map((d) => d.target), borderColor: c.muted, borderDash: [4, 4], pointRadius: 0, borderWidth: 1.5, fill: false },
+      ],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: c.tooltipBg, titleColor: c.text, bodyColor: c.text, borderColor: c.grid, borderWidth: 1, padding: 10, callbacks: { label: (ctx) => money(ctx.raw) } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: c.muted, font: { family: "JetBrains Mono", size: 11 } } },
+        y: { grid: { color: c.grid }, ticks: { color: c.muted, font: { size: 11 }, callback: (v) => v / 1000 + "k" } },
+      },
+    },
+  }), [theme]);
+  return <div className="chart-box" style={{ height }}><canvas ref={ref}></canvas></div>;
+}
+
+function PipelineDonut({ theme, data, height }) {
+  const c = THEME_CHART[theme];
+  const ref = useChart(() => ({
+    type: "doughnut",
+    data: { labels: data.map((d) => d.name), datasets: [{ data: data.map((d) => d.value), backgroundColor: data.map((d) => STATUS_COLOR[d.name]), borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: "62%", plugins: { legend: { display: false }, tooltip: { backgroundColor: c.tooltipBg, titleColor: c.text, bodyColor: c.text } } },
+  }), [theme, JSON.stringify(data)]);
+  return <div className="chart-box" style={{ height }}><canvas ref={ref}></canvas></div>;
+}
+
+function ChannelBarChart({ theme, height, horizontal }) {
+  const c = THEME_CHART[theme];
+  const ref = useChart(() => ({
+    type: "bar",
+    data: { labels: RESPONSE_RATE.map((d) => d.channel), datasets: [{ data: RESPONSE_RATE.map((d) => d.rate), backgroundColor: RESPONSE_RATE.map((d) => CHANNEL_COLOR[d.channel]), borderRadius: 8, maxBarThickness: 40 }] },
+    options: {
+      indexAxis: horizontal ? "y" : "x",
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: c.tooltipBg, titleColor: c.text, bodyColor: c.text, callbacks: { label: (ctx) => ctx.raw + "%" } } },
+      scales: {
+        x: { grid: { display: horizontal, color: c.grid }, ticks: { color: c.muted, font: { size: 11 } } },
+        y: { grid: { display: !horizontal, color: c.grid }, ticks: { color: c.muted, font: { size: 11 } } },
+      },
+    },
+  }), [theme]);
+  return <div className="chart-box" style={{ height }}><canvas ref={ref}></canvas></div>;
+}
+
+function ResponseLineChart({ theme, height }) {
+  const c = THEME_CHART[theme];
+  const ref = useChart(() => ({
+    type: "line",
+    data: { labels: RESPONSE_RATE.map((d) => d.channel), datasets: [{ data: RESPONSE_RATE.map((d) => d.rate), borderColor: "#A855F7", backgroundColor: "rgba(168,85,247,0.2)", tension: 0.4, pointRadius: 4, pointBackgroundColor: "#A855F7", fill: true }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: c.tooltipBg, titleColor: c.text, bodyColor: c.text, callbacks: { label: (ctx) => ctx.raw + "%" } } },
+      scales: { x: { grid: { display: false }, ticks: { color: c.muted, font: { size: 11 } } }, y: { display: false } },
+    },
+  }), [theme]);
+  return <div className="chart-box" style={{ height }}><canvas ref={ref}></canvas></div>;
+}
+
+function FunnelBarChart({ theme, data, height }) {
+  const c = THEME_CHART[theme];
+  const ref = useChart(() => ({
+    type: "bar",
+    data: { labels: data.map((d) => d.name), datasets: [{ data: data.map((d) => d.value), backgroundColor: data.map((d) => STATUS_COLOR[d.name]), borderRadius: 6, maxBarThickness: 28 }] },
+    options: {
+      indexAxis: "y",
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: c.tooltipBg, titleColor: c.text, bodyColor: c.text } },
+      scales: { x: { grid: { color: c.grid }, ticks: { color: c.muted, font: { size: 11 } } }, y: { grid: { display: false }, ticks: { color: c.muted, font: { size: 12 } } } },
+    },
+  }), [theme, JSON.stringify(data)]);
+  return <div className="chart-box" style={{ height }}><canvas ref={ref}></canvas></div>;
+}
+
+/* ---------------------------------------------------------------
+   PRIMITIVES
+--------------------------------------------------------------- */
+
+function GlassCard({ children, className = "", style = {}, hover = true, ...rest }) {
+  return <div className={`glass-card ${hover ? "glass-hover" : ""} ${className}`} style={style} {...rest}>{children}</div>;
+}
+
+function StatusBadge({ status }) {
+  const c = STATUS_COLOR[status];
+  return <span className="status-badge" style={{ "--c": c }}><span className="status-dot" />{status}</span>;
+}
+
+function ScoreRing({ score }) {
+  const c = score >= 75 ? "#FFB454" : score >= 50 ? "#A855F7" : "#3B82F6";
+  const circumference = 2 * Math.PI * 15;
+  const offset = circumference - (score / 100) * circumference;
+  return (
+    <div className="score-ring">
+      <svg width="38" height="38" viewBox="0 0 38 38">
+        <circle cx="19" cy="19" r="15" fill="none" stroke="var(--border)" strokeWidth="3" />
+        <circle cx="19" cy="19" r="15" fill="none" stroke={c} strokeWidth="3" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" transform="rotate(-90 19 19)" />
+      </svg>
+      <span className="score-num">{score}</span>
+    </div>
+  );
+}
+
+function IconBtn({ icon: Icon, onClick, title, danger }) {
+  return <button className={`icon-btn ${danger ? "icon-btn-danger" : ""}`} onClick={onClick} title={title} type="button"><Icon size={15} /></button>;
+}
+
+function Toggle({ checked, onChange }) {
+  return <button type="button" className={`toggle ${checked ? "toggle-on" : ""}`} onClick={() => onChange(!checked)}><span className="toggle-knob" /></button>;
+}
+
+function Modal({ title, onClose, children, wide }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className={`modal-panel ${wide ? "modal-wide" : ""}`} onClick={(e) => e.stopPropagation()}>
+        <div className="modal-head"><h3>{title}</h3><button className="icon-btn" onClick={onClose}><X size={16} /></button></div>
+        <div className="modal-body">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }) {
+  return <label className="field"><span className="field-label">{label}</span>{children}</label>;
+}
+
+function EmptyState({ icon: Icon, title, body }) {
+  return <div className="empty-state"><Icon size={28} style={{ strokeWidth: 1.4 }} /><p className="empty-title">{title}</p><p className="empty-body">{body}</p></div>;
+}
+
+/* ---------------------------------------------------------------
+   DASHBOARD VIEW
+--------------------------------------------------------------- */
+
+function DashboardView({ customers, leads, followups, toast, theme }) {
+  const pending = followups.filter((f) => f.status === "Pending").length;
+  const completed = followups.filter((f) => f.status === "Completed").length;
+  const today = followups.filter((f) => f.scheduledFor.startsWith("2026-07-05"));
+  const won = leads.filter((l) => l.status === "Won");
+  const conversion = ((won.length / leads.length) * 100).toFixed(1);
+  const revenue = won.reduce((s, l) => s + l.value, 0);
+  const statusDist = STATUS.map((s) => ({ name: s, value: leads.filter((l) => l.status === s).length }));
+
+  const stats = [
+    { label: "Total Customers", value: customers.length, icon: Users, delta: "+3 this month", up: true },
+    { label: "Total Leads", value: leads.length, icon: Target, delta: "+2 this week", up: true },
+    { label: "Pending Follow-ups", value: pending, icon: Clock, delta: `${today.length} due today`, up: null },
+    { label: "Completed Follow-ups", value: completed, icon: CheckCircle2, delta: "This month", up: null },
+    { label: "Today's Reminders", value: today.length, icon: Bell, delta: "Next at 09:00", up: null },
+    { label: "Conversion Rate", value: `${conversion}%`, icon: TrendingUp, delta: "+1.2% vs last month", up: true },
+    { label: "Revenue Generated", value: money(revenue), icon: DollarSign, delta: "+18% vs last month", up: true },
+  ];
+
+  return (
+    <div className="view-stack">
+      <div className="stat-grid">
+        {stats.map((s) => (
+          <GlassCard key={s.label} className="stat-card">
+            <div className="stat-top">
+              <span className="stat-icon"><s.icon size={16} /></span>
+              {s.up !== null && <span className={`stat-delta ${s.up ? "stat-up" : "stat-down"}`}>{s.up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}</span>}
+            </div>
+            <div className="stat-value">{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+            <div className="stat-sub">{s.delta}</div>
+          </GlassCard>
+        ))}
+      </div>
+
+      <div className="dash-grid">
+        <GlassCard className="pad-lg span-2">
+          <div className="card-head"><h3>Sales Performance</h3><span className="muted-sm">Revenue vs target, last 6 months</span></div>
+          <RevenueChart theme={theme} height={230} />
+        </GlassCard>
+
+        <GlassCard className="pad-lg">
+          <div className="card-head"><h3>Pipeline Temperature</h3><span className="muted-sm">Leads by status</span></div>
+          <PipelineDonut theme={theme} data={statusDist} height={180} />
+          <div className="legend-wrap">
+            {statusDist.map((d) => <span key={d.name} className="legend-item"><span className="legend-dot" style={{ background: STATUS_COLOR[d.name] }} />{d.name} · {d.value}</span>)}
+          </div>
+        </GlassCard>
+
+        <GlassCard className="pad-lg">
+          <div className="card-head"><h3>Today's Reminders</h3></div>
+          <div className="mini-list">
+            {today.length === 0 && <p className="muted-sm">Nothing scheduled for today.</p>}
+            {today.map((f) => {
+              const Icon = CHANNEL_ICON[f.channel];
+              return (
+                <div key={f.id} className="mini-row">
+                  <span className="mini-icon" style={{ "--c": CHANNEL_COLOR[f.channel] }}><Icon size={14} /></span>
+                  <div className="mini-body"><span className="mini-title">{f.customer}</span><span className="mini-sub">{f.scheduledFor.split(" ")[1]} · {f.note}</span></div>
+                  <button className="chip-btn" onClick={() => toast(`Marked follow-up to ${f.customer} as done`)}>Done</button>
+                </div>
+              );
+            })}
+          </div>
+        </GlassCard>
+
+        <GlassCard className="pad-lg span-2">
+          <div className="card-head"><h3>Response Rate by Channel</h3></div>
+          <ChannelBarChart theme={theme} height={180} />
+        </GlassCard>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   CUSTOMERS VIEW
+--------------------------------------------------------------- */
+
+function CustomerForm({ initial, onSave, onCancel }) {
+  const [f, setF] = useState(initial || { name: "", email: "", phone: "", company: "", tags: "", value: "" });
+  return (
+    <form className="form-grid" onSubmit={(e) => { e.preventDefault(); onSave({ ...f, value: Number(f.value) || 0 }); }}>
+      <Field label="Full name"><input required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} placeholder="e.g. Jordan Blake" /></Field>
+      <Field label="Email"><input required type="email" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} placeholder="name@company.com" /></Field>
+      <Field label="Phone"><input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} placeholder="+1 555 000 0000" /></Field>
+      <Field label="Company"><input value={f.company} onChange={(e) => setF({ ...f, company: e.target.value })} placeholder="Company name" /></Field>
+      <Field label="Tag"><input value={f.tags} onChange={(e) => setF({ ...f, tags: e.target.value })} placeholder="Enterprise, SMB, Renewal..." /></Field>
+      <Field label="Deal value ($)"><input type="number" value={f.value} onChange={(e) => setF({ ...f, value: e.target.value })} placeholder="0" /></Field>
+      <div className="form-actions">
+        <button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button>
+        <button type="submit" className="btn-primary">Save customer</button>
+      </div>
+    </form>
+  );
+}
+
+function CustomersView({ customers, setCustomers, comms, leads, followups, toast }) {
+  const [query, setQuery] = useState("");
+  const [modal, setModal] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const fileRef = useRef(null);
+
+  const filtered = customers.filter((c) => [c.name, c.email, c.phone, c.company].join(" ").toLowerCase().includes(query.toLowerCase()));
+
+  const addCustomer = (data) => {
+    const id = "C" + String(customers.length + 1).padStart(3, "0");
+    setCustomers([{ id, createdAt: "2026-07-05", lastContact: "—", tags: data.tags ? [data.tags] : [], ...data }, ...customers]);
+    setModal(null);
+    toast(`${data.name} added to customers`);
+  };
+  const editCustomer = (data) => {
+    setCustomers(customers.map((c) => (c.id === modal.id ? { ...c, ...data, tags: data.tags ? [data.tags] : c.tags } : c)));
+    setModal(null);
+    toast(`${data.name} updated`);
+  };
+  const deleteCustomer = (c) => { setCustomers(customers.filter((x) => x.id !== c.id)); toast(`${c.name} deleted`); };
+  const importCSV = () => {
+    const sample = [{ id: "C" + (customers.length + 1), name: "Imported Contact " + (customers.length + 1), email: "contact@imported.com", phone: "+1 555 010 0000", company: "Imported LLC", tags: ["Imported"], createdAt: "2026-07-05", lastContact: "—", value: 0 }];
+    setCustomers([...sample, ...customers]);
+    toast("1 customer imported from file (demo import)");
+  };
+  const exportCSV = () => {
+    const header = "Name,Email,Phone,Company,Deal Value\n";
+    const rows = customers.map((c) => `${c.name},${c.email},${c.phone},${c.company},${c.value}`).join("\n");
+    const blob = new Blob([header + rows], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "customers.csv"; a.click();
+    URL.revokeObjectURL(url);
+    toast("Customers exported as CSV");
+  };
+
+  return (
+    <div className="view-stack">
+      <div className="toolbar">
+        <div className="search-box"><Search size={15} /><input placeholder="Search by name, email, or phone…" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+        <div className="toolbar-actions">
+          <input type="file" ref={fileRef} accept=".csv,.xlsx" style={{ display: "none" }} onChange={importCSV} />
+          <button className="btn-ghost" onClick={() => fileRef.current.click()}><Upload size={14} /> Import CSV/Excel</button>
+          <button className="btn-ghost" onClick={exportCSV}><Download size={14} /> Export</button>
+          <button className="btn-primary" onClick={() => setModal("add")}><Plus size={14} /> Add customer</button>
+        </div>
+      </div>
+
+      <GlassCard className="pad-none">
+        <table className="data-table">
+          <thead><tr><th>Customer</th><th>Company</th><th>Phone</th><th>Tags</th><th>Last contact</th><th>Deal value</th><th></th></tr></thead>
+          <tbody>
+            {filtered.map((c) => (
+              <tr key={c.id}>
+                <td>
+                  <button className="cell-link" onClick={() => setProfile(c)}>
+                    <span className="avatar">{initials(c.name)}</span>
+                    <span className="cell-main"><span className="cell-title">{c.name}</span><span className="cell-sub">{c.email}</span></span>
+                  </button>
+                </td>
+                <td>{c.company}</td>
+                <td className="mono">{c.phone}</td>
+                <td>{c.tags?.map((t) => <span key={t} className="tag-chip">{t}</span>)}</td>
+                <td className="mono">{c.lastContact}</td>
+                <td className="mono">{money(c.value)}</td>
+                <td><div className="row-actions"><IconBtn icon={Pencil} title="Edit" onClick={() => setModal(c)} /><IconBtn icon={Trash2} title="Delete" danger onClick={() => deleteCustomer(c)} /></div></td>
+              </tr>
+            ))}
+            {filtered.length === 0 && <tr><td colSpan={7}><EmptyState icon={Users} title="No customers found" body="Try a different search or add a new customer." /></td></tr>}
+          </tbody>
+        </table>
+      </GlassCard>
+
+      {modal && (
+        <Modal title={modal === "add" ? "Add customer" : "Edit customer"} onClose={() => setModal(null)}>
+          <CustomerForm initial={modal === "add" ? null : modal} onSave={modal === "add" ? addCustomer : editCustomer} onCancel={() => setModal(null)} />
+        </Modal>
+      )}
+
+      {profile && (
+        <Modal title={profile.name} onClose={() => setProfile(null)} wide>
+          <div className="profile-head">
+            <span className="avatar avatar-lg">{initials(profile.name)}</span>
+            <div><div className="profile-name">{profile.name} <span className="muted-sm">· {profile.company}</span></div><div className="profile-meta">{profile.email} · {profile.phone}</div></div>
+            <div className="profile-value">{money(profile.value)}<span className="muted-sm">lifetime value</span></div>
+          </div>
+          <div className="profile-tabs-content">
+            <h4 className="sub-head">Related leads</h4>
+            {leads.filter((l) => l.customer === profile.name).map((l) => (
+              <div key={l.id} className="mini-row"><StatusBadge status={l.status} /><div className="mini-body"><span className="mini-title">{l.source}</span><span className="mini-sub">Assigned to {l.assigned}</span></div><span className="mono">{money(l.value)}</span></div>
+            ))}
+            <h4 className="sub-head">Communication history</h4>
+            {comms.filter((h) => h.customer === profile.name).map((h) => {
+              const Icon = CHANNEL_ICON[h.channel];
+              return <div key={h.id} className="mini-row"><span className="mini-icon" style={{ "--c": CHANNEL_COLOR[h.channel] }}><Icon size={14} /></span><div className="mini-body"><span className="mini-title">{h.content}</span><span className="mini-sub">{h.timestamp} · {h.direction}</span></div></div>;
+            })}
+            <h4 className="sub-head">Upcoming follow-ups</h4>
+            {followups.filter((f) => f.customer === profile.name).map((f) => {
+              const Icon = CHANNEL_ICON[f.channel];
+              return <div key={f.id} className="mini-row"><span className="mini-icon" style={{ "--c": CHANNEL_COLOR[f.channel] }}><Icon size={14} /></span><div className="mini-body"><span className="mini-title">{f.note}</span><span className="mini-sub">{f.scheduledFor}</span></div><span className={`pill pill-${f.status.toLowerCase()}`}>{f.status}</span></div>;
+            })}
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   LEADS VIEW
+--------------------------------------------------------------- */
+
+function LeadCard({ lead, onDragStart, onClick }) {
+  return (
+    <div className="lead-card" draggable onDragStart={() => onDragStart(lead.id)} onClick={() => onClick(lead)}>
+      <div className="lead-card-top"><span className="lead-name">{lead.customer}</span><ScoreRing score={lead.score} /></div>
+      <div className="lead-company"><Building2 size={12} /> {lead.company}</div>
+      <div className="lead-card-bottom"><span className="avatar avatar-xs">{initials(lead.assigned)}</span><span className="mono lead-value">{money(lead.value)}</span></div>
+    </div>
+  );
+}
+
+function LeadDetail({ lead, comms, onClose, onUpdate }) {
+  return (
+    <Modal title={lead.customer} onClose={onClose}>
+      <div className="lead-detail-grid">
+        <Field label="Status"><select value={lead.status} onChange={(e) => onUpdate({ ...lead, status: e.target.value })}>{STATUS.map((s) => <option key={s}>{s}</option>)}</select></Field>
+        <Field label="Assigned to"><select value={lead.assigned} onChange={(e) => onUpdate({ ...lead, assigned: e.target.value })}>{SALESPEOPLE.map((s) => <option key={s}>{s}</option>)}</select></Field>
+      </div>
+      <div className="lead-score-row"><ScoreRing score={lead.score} /><div><div className="cell-title">Lead score</div><div className="muted-sm">Based on engagement, deal size, and source quality</div></div></div>
+      <h4 className="sub-head">Communication history</h4>
+      {comms.filter((h) => h.customer === lead.customer).length === 0 && <p className="muted-sm">No communication logged yet.</p>}
+      {comms.filter((h) => h.customer === lead.customer).map((h) => {
+        const Icon = CHANNEL_ICON[h.channel];
+        return <div key={h.id} className="mini-row"><span className="mini-icon" style={{ "--c": CHANNEL_COLOR[h.channel] }}><Icon size={14} /></span><div className="mini-body"><span className="mini-title">{h.content}</span><span className="mini-sub">{h.timestamp}</span></div></div>;
+      })}
+      <div className="quick-actions"><button className="btn-ghost"><Mail size={14} /> Email</button><button className="btn-ghost"><MessageCircle size={14} /> SMS</button><button className="btn-ghost"><Phone size={14} /> Call</button></div>
+    </Modal>
+  );
+}
+
+function LeadsView({ leads, setLeads, comms, toast, role, currentUser }) {
+  const [dragId, setDragId] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [assigneeFilter, setAssigneeFilter] = useState("All");
+
+  const visible = leads.filter((l) => {
+    if (role === "salesperson" && l.assigned !== currentUser) return false;
+    if (assigneeFilter !== "All" && l.assigned !== assigneeFilter) return false;
+    return true;
+  });
+
+  const drop = (status) => {
+    if (!dragId) return;
+    setLeads(leads.map((l) => (l.id === dragId ? { ...l, status } : l)));
+    setDragId(null);
+    toast(`Lead moved to ${status}`);
+  };
+
+  const updateLead = (updated) => { setLeads(leads.map((l) => (l.id === updated.id ? updated : l))); setSelected(updated); toast("Lead updated"); };
+
+  return (
+    <div className="view-stack">
+      <div className="toolbar">
+        <div className="pill-filter"><Filter size={14} /><select value={assigneeFilter} onChange={(e) => setAssigneeFilter(e.target.value)}><option>All</option>{SALESPEOPLE.map((s) => <option key={s}>{s}</option>)}</select></div>
+        <span className="muted-sm">{visible.length} leads shown · drag cards between columns to update status</span>
+      </div>
+      <div className="kanban">
+        {STATUS.map((status) => (
+          <div key={status} className="kanban-col" onDragOver={(e) => e.preventDefault()} onDrop={() => drop(status)}>
+            <div className="kanban-head" style={{ "--c": STATUS_COLOR[status] }}><span className="status-dot" /> {status}<span className="kanban-count">{visible.filter((l) => l.status === status).length}</span></div>
+            <div className="kanban-body">{visible.filter((l) => l.status === status).map((l) => <LeadCard key={l.id} lead={l} onDragStart={setDragId} onClick={setSelected} />)}</div>
+          </div>
+        ))}
+      </div>
+      {selected && <LeadDetail lead={selected} comms={comms} onClose={() => setSelected(null)} onUpdate={updateLead} />}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   FOLLOW-UPS + AUTOMATION VIEW
+--------------------------------------------------------------- */
+
+function ScheduleForm({ customers, onSave, onCancel }) {
+  const [f, setF] = useState({ customer: customers[0]?.name || "", channel: "Email", delay: "3 days", repeat: false, skipWeekends: true, note: "" });
+  return (
+    <form className="form-grid" onSubmit={(e) => { e.preventDefault(); onSave(f); }}>
+      <Field label="Customer"><select value={f.customer} onChange={(e) => setF({ ...f, customer: e.target.value })}>{customers.map((c) => <option key={c.id}>{c.name}</option>)}</select></Field>
+      <Field label="Channel"><select value={f.channel} onChange={(e) => setF({ ...f, channel: e.target.value })}>{Object.keys(CHANNEL_ICON).map((c) => <option key={c}>{c}</option>)}</select></Field>
+      <Field label="Send after"><select value={f.delay} onChange={(e) => setF({ ...f, delay: e.target.value })}>{["1 day", "3 days", "7 days", "15 days", "30 days", "custom"].map((d) => <option key={d}>{d}</option>)}</select></Field>
+      <Field label="Note"><input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="What's this follow-up about?" /></Field>
+      <div className="check-row">
+        <label className="check-label"><input type="checkbox" checked={f.repeat} onChange={(e) => setF({ ...f, repeat: e.target.checked })} /> Repeat until response</label>
+        <label className="check-label"><input type="checkbox" checked={f.skipWeekends} onChange={(e) => setF({ ...f, skipWeekends: e.target.checked })} /> Skip weekends & holidays</label>
+      </div>
+      <div className="form-actions"><button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button><button type="submit" className="btn-primary">Schedule follow-up</button></div>
+    </form>
+  );
+}
+
+function RuleForm({ onSave, onCancel }) {
+  const triggers = ["No reply in 1 day", "No reply in 3 days", "No reply in 7 days", "No reply in 15 days", "Purchase completed", "Subscription nearing expiry", "Lead marked \u201cInterested\u201d", "Customer birthday", "Cart abandoned 24h"];
+  const actions = ["Send Reminder Email", "Send SMS", "Send WhatsApp message", "Notify salesperson", "Schedule product demo", "Send renewal reminder", "Send thank-you email", "Send birthday greeting"];
+  const [f, setF] = useState({ trigger: triggers[0], action: actions[0] });
+  return (
+    <form className="form-grid" onSubmit={(e) => { e.preventDefault(); onSave(f); }}>
+      <Field label="If this happens"><select value={f.trigger} onChange={(e) => setF({ ...f, trigger: e.target.value })}>{triggers.map((t) => <option key={t}>{t}</option>)}</select></Field>
+      <Field label="Then do this"><select value={f.action} onChange={(e) => setF({ ...f, action: e.target.value })}>{actions.map((a) => <option key={a}>{a}</option>)}</select></Field>
+      <div className="form-actions"><button type="button" className="btn-ghost" onClick={onCancel}>Cancel</button><button type="submit" className="btn-primary">Add rule</button></div>
+    </form>
+  );
+}
+
+function FollowupsView({ followups, setFollowups, automations, setAutomations, customers, toast }) {
+  const [tab, setTab] = useState("scheduled");
+  const [modal, setModal] = useState(false);
+  const [dragIdx, setDragIdx] = useState(null);
+
+  const addFollowup = (f) => {
+    const id = "F" + String(followups.length + 1).padStart(3, "0");
+    setFollowups([{ id, status: "Pending", scheduledFor: "2026-07-06 09:00", ...f }, ...followups]);
+    setModal(false);
+    toast(`Follow-up scheduled for ${f.customer}`);
+  };
+  const setStatus = (id, status) => { setFollowups(followups.map((f) => (f.id === id ? { ...f, status } : f))); toast(`Follow-up marked as ${status}`); };
+  const addRule = (r) => { const id = "A" + (automations.length + 1); setAutomations([...automations, { id, enabled: true, ...r }]); setModal(false); toast("Automation rule added"); };
+  const toggleRule = (id) => setAutomations(automations.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)));
+
+  const reorder = (dropIdx) => {
+    if (dragIdx === null || dragIdx === dropIdx) return;
+    const next = [...automations];
+    const [moved] = next.splice(dragIdx, 1);
+    next.splice(dropIdx, 0, moved);
+    setAutomations(next);
+    setDragIdx(null);
+  };
+
+  return (
+    <div className="view-stack">
+      <div className="tabs">
+        <button className={`tab ${tab === "scheduled" ? "tab-active" : ""}`} onClick={() => setTab("scheduled")}>Scheduled Follow-ups</button>
+        <button className={`tab ${tab === "rules" ? "tab-active" : ""}`} onClick={() => setTab("rules")}>Automation Rules</button>
+        <div className="tab-spacer" />
+        <button className="btn-primary" onClick={() => setModal(true)}><Plus size={14} /> {tab === "scheduled" ? "Schedule follow-up" : "Add rule"}</button>
+      </div>
+
+      {tab === "scheduled" ? (
+        <GlassCard className="pad-none">
+          <table className="data-table">
+            <thead><tr><th>Customer</th><th>Channel</th><th>Scheduled</th><th>Rules</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {followups.map((f) => {
+                const Icon = CHANNEL_ICON[f.channel];
+                return (
+                  <tr key={f.id}>
+                    <td className="cell-title">{f.customer}<div className="cell-sub">{f.note}</div></td>
+                    <td><span className="mini-icon" style={{ "--c": CHANNEL_COLOR[f.channel] }}><Icon size={14} /></span> {f.channel}</td>
+                    <td className="mono">{f.scheduledFor}</td>
+                    <td>{f.repeat && <span className="tag-chip">Repeat until reply</span>}{f.skipWeekends && <span className="tag-chip">Skip weekends</span>}</td>
+                    <td><span className={`pill pill-${f.status.toLowerCase()}`}>{f.status}</span></td>
+                    <td><div className="row-actions"><button className="chip-btn" onClick={() => setStatus(f.id, "Sent")}>Send now</button><button className="chip-btn chip-btn-muted" onClick={() => setStatus(f.id, "Skipped")}>Skip</button></div></td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </GlassCard>
+      ) : (
+        <div className="rule-list">
+          {automations.map((r, idx) => (
+            <GlassCard key={r.id} className="rule-card" draggable onDragStart={() => setDragIdx(idx)} onDragOver={(e) => e.preventDefault()} onDrop={() => reorder(idx)}>
+              <GripVertical size={16} className="grip" />
+              <Zap size={16} className="rule-zap" />
+              <div className="rule-text"><span className="rule-if">If</span> {r.trigger} <ChevronRight size={13} /> <span className="rule-then">Then</span> {r.action}</div>
+              <Toggle checked={r.enabled} onChange={() => toggleRule(r.id)} />
+            </GlassCard>
+          ))}
+        </div>
+      )}
+
+      {modal && (
+        <Modal title={tab === "scheduled" ? "Schedule a follow-up" : "New automation rule"} onClose={() => setModal(false)}>
+          {tab === "scheduled" ? <ScheduleForm customers={customers} onSave={addFollowup} onCancel={() => setModal(false)} /> : <RuleForm onSave={addRule} onCancel={() => setModal(false)} />}
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   COMMUNICATIONS VIEW
+--------------------------------------------------------------- */
+
+function CommunicationsView({ comms }) {
+  const [channel, setChannel] = useState("All");
+  const [query, setQuery] = useState("");
+  const filtered = comms.filter((h) => (channel === "All" || h.channel === channel) && h.customer.toLowerCase().includes(query.toLowerCase()));
+
+  return (
+    <div className="view-stack">
+      <div className="toolbar">
+        <div className="search-box"><Search size={15} /><input placeholder="Search by customer…" value={query} onChange={(e) => setQuery(e.target.value)} /></div>
+        <div className="pill-filter"><Filter size={14} /><select value={channel} onChange={(e) => setChannel(e.target.value)}><option>All</option>{Object.keys(CHANNEL_ICON).map((c) => <option key={c}>{c}</option>)}</select></div>
+      </div>
+      <div className="timeline">
+        {filtered.map((h) => {
+          const Icon = CHANNEL_ICON[h.channel];
+          return (
+            <GlassCard key={h.id} className="timeline-item">
+              <span className="mini-icon mini-icon-lg" style={{ "--c": CHANNEL_COLOR[h.channel] }}><Icon size={16} /></span>
+              <div className="timeline-body">
+                <div className="timeline-top"><span className="cell-title">{h.customer}</span><span className={`pill pill-${h.direction.toLowerCase()}`}>{h.direction}</span><span className="muted-sm mono">{h.timestamp}</span></div>
+                <p className="timeline-text">{h.content}</p>
+                {h.attachment && <span className="tag-chip"><Paperclip size={11} /> {h.attachment}</span>}
+              </div>
+            </GlassCard>
+          );
+        })}
+        {filtered.length === 0 && <EmptyState icon={MessageSquare} title="No communication found" body="Try a different filter or search term." />}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   REPORTS VIEW
+--------------------------------------------------------------- */
+
+function ReportsView({ leads, followups, toast, theme }) {
+  const [range, setRange] = useState("Weekly");
+  const successRate = Math.round((followups.filter((f) => f.status === "Completed" || f.status === "Sent").length / followups.length) * 100);
+  const won = leads.filter((l) => l.status === "Won");
+  const roi = won.reduce((s, l) => s + l.value, 0);
+  const funnelData = STATUS.filter((s) => s !== "Lost").map((s) => ({ name: s, value: leads.filter((l) => l.status === s).length }));
+  const exportAs = (type) => toast(`${range} report exported as ${type}`);
+
+  return (
+    <div className="view-stack">
+      <div className="toolbar">
+        <div className="tabs tabs-inline">{["Daily", "Weekly", "Monthly"].map((r) => <button key={r} className={`tab ${range === r ? "tab-active" : ""}`} onClick={() => setRange(r)}>{r}</button>)}</div>
+        <div className="toolbar-actions"><button className="btn-ghost" onClick={() => exportAs("PDF")}><FileText size={14} /> Export PDF</button><button className="btn-ghost" onClick={() => exportAs("Excel")}><Download size={14} /> Export Excel</button></div>
+      </div>
+
+      <div className="dash-grid">
+        <GlassCard className="pad-lg"><div className="card-head"><h3>Follow-up Success Rate</h3></div><div className="big-metric" style={{ color: "#FFB454" }}>{successRate}%</div><p className="muted-sm">Sent or completed vs total scheduled ({range.toLowerCase()})</p></GlassCard>
+        <GlassCard className="pad-lg"><div className="card-head"><h3>ROI Generated</h3></div><div className="big-metric" style={{ color: "#34D399" }}>{money(roi)}</div><p className="muted-sm">From {won.length} won deals this period</p></GlassCard>
+        <GlassCard className="pad-lg"><div className="card-head"><h3>Response Rate</h3></div><ResponseLineChart theme={theme} height={140} /></GlassCard>
+        <GlassCard className="pad-lg span-3">
+          <div className="card-head"><h3>Conversion Analytics</h3><span className="muted-sm">Leads remaining at each pipeline stage</span></div>
+          <FunnelBarChart theme={theme} data={funnelData} height={200} />
+        </GlassCard>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   SETTINGS VIEW
+--------------------------------------------------------------- */
+
+function SettingsView({ integrations, setIntegrations, theme, setTheme, role, setRole }) {
+  const toggle = (id) => {
+    const target = integrations.find((i) => i.id === id);
+    setIntegrations(integrations.map((i) => (i.id === id ? { ...i, connected: !i.connected } : i)));
+  };
+
+  return (
+    <div className="view-stack">
+      <GlassCard className="pad-lg">
+        <div className="card-head"><h3>Account & Access</h3></div>
+        <div className="settings-row">
+          <div><span className="cell-title">Viewing as</span><p className="muted-sm">Role-based access controls what's visible in the app</p></div>
+          <div className="role-switch"><button className={`tab ${role === "admin" ? "tab-active" : ""}`} onClick={() => setRole("admin")}><Shield size={13} /> Admin</button><button className={`tab ${role === "salesperson" ? "tab-active" : ""}`} onClick={() => setRole("salesperson")}><Users size={13} /> Salesperson</button></div>
+        </div>
+        <div className="settings-row">
+          <div><span className="cell-title">Appearance</span><p className="muted-sm">Switch between light and dark themes</p></div>
+          <div className="role-switch"><button className={`tab ${theme === "light" ? "tab-active" : ""}`} onClick={() => setTheme("light")}><Sun size={13} /> Light</button><button className={`tab ${theme === "dark" ? "tab-active" : ""}`} onClick={() => setTheme("dark")}><Moon size={13} /> Dark</button></div>
+        </div>
+      </GlassCard>
+
+      <GlassCard className="pad-lg">
+        <div className="card-head"><h3>Integrations</h3><span className="muted-sm">Connect the tools your team already uses</span></div>
+        <div className="integration-grid">
+          {integrations.map((i) => (
+            <div key={i.id} className="integration-card">
+              <div className="integration-top"><span className="mini-icon mini-icon-lg" style={{ "--c": i.connected ? "#34D399" : "#64748B" }}><Link2 size={16} /></span><Toggle checked={i.connected} onChange={() => toggle(i.id)} /></div>
+              <div className="cell-title">{i.name}</div>
+              <div className="muted-sm">{i.desc}</div>
+              <span className={`pill ${i.connected ? "pill-completed" : "pill-skipped"}`}>{i.connected ? "Connected" : "Not connected"}</span>
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard className="pad-lg">
+        <div className="card-head"><h3>Team</h3></div>
+        <div className="team-list">{SALESPEOPLE.map((s) => <div key={s} className="mini-row"><span className="avatar">{initials(s)}</span><div className="mini-body"><span className="mini-title">{s}</span><span className="mini-sub">Salesperson</span></div></div>)}</div>
+      </GlassCard>
+
+      <GlassCard className="pad-lg">
+        <div className="card-head"><h3>Activity Log</h3></div>
+        <div className="mini-list">{ACTIVITY_LOG.map((a) => <div key={a.id} className="mini-row"><span className="mini-icon"><Activity size={14} /></span><div className="mini-body"><span className="mini-title">{a.action}</span><span className="mini-sub">{a.user} · {a.time}</span></div></div>)}</div>
+      </GlassCard>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------
+   SHELL
+--------------------------------------------------------------- */
+
+const NAV = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "customers", label: "Customers", icon: Users },
+  { id: "leads", label: "Leads", icon: Target },
+  { id: "followups", label: "Follow-ups", icon: Clock },
+  { id: "comms", label: "Communications", icon: MessageSquare },
+  { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "settings", label: "Settings", icon: SettingsIcon },
+];
+
+function App() {
+  const [theme, setTheme] = useState("dark");
+  const [view, setView] = useState("dashboard");
+  const [collapsed, setCollapsed] = useState(false);
+  const [role, setRole] = useState("admin");
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const [customers, setCustomers] = useState(CUSTOMERS);
+  const [leads, setLeads] = useState(LEADS);
+  const [followups, setFollowups] = useState(FOLLOWUPS);
+  const [automations, setAutomations] = useState(AUTOMATIONS);
+  const [integrations, setIntegrations] = useState(INTEGRATIONS);
+
+  const toast = (msg) => {
+    const id = Date.now() + Math.random();
+    setToasts((t) => [...t, { id, msg }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
+  };
+
+  const navItems = role === "salesperson" ? NAV.filter((n) => n.id !== "settings") : NAV;
+  const currentUser = "Spandan Parhi";
+  const pendingToday = followups.filter((f) => f.scheduledFor.startsWith("2026-07-05") && f.status === "Pending").length;
+
+  const viewProps = { customers, setCustomers, leads, setLeads, followups, setFollowups, automations, setAutomations, integrations, setIntegrations, comms: COMMS, theme, setTheme, role, setRole, toast, currentUser };
+
+  return (
+    <div data-theme={theme} className="app-root">
+      <aside className={`sidebar ${collapsed ? "sidebar-collapsed" : ""}`}>
+        <div className="brand"><span className="brand-mark"><Zap size={16} /></span>{!collapsed && <span className="brand-name">FollowFlow</span>}</div>
+        <nav className="nav">
+          {navItems.map((n) => (
+            <button key={n.id} className={`nav-item ${view === n.id ? "nav-active" : ""}`} onClick={() => setView(n.id)} title={n.label}>
+              <n.icon size={17} />
+              {!collapsed && <span>{n.label}</span>}
+              {n.id === "followups" && pendingToday > 0 && !collapsed && <span className="nav-badge">{pendingToday}</span>}
+            </button>
+          ))}
+        </nav>
+        <button className="collapse-btn" onClick={() => setCollapsed(!collapsed)}><Menu size={16} /></button>
+      </aside>
+
+      <div className="main-col">
+        <header className="topbar">
+          <div><h1 className="page-title">{NAV.find((n) => n.id === view)?.label}</h1><p className="page-sub">Sunday, July 5, 2026</p></div>
+          <div className="topbar-actions">
+            <button className="icon-btn" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Toggle theme">{theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}</button>
+            <div className="notif-wrap">
+              <button className="icon-btn" onClick={() => setNotifOpen(!notifOpen)} title="Notifications"><Bell size={16} /><span className="notif-dot" /></button>
+              {notifOpen && (
+                <div className="notif-dropdown">
+                  <div className="notif-head">Notifications</div>
+                  {ACTIVITY_LOG.slice(0, 4).map((a) => <div key={a.id} className="notif-item"><Activity size={13} /><div><div className="mini-title">{a.action}</div><div className="mini-sub">{a.time}</div></div></div>)}
+                </div>
+              )}
+            </div>
+            <div className="user-chip"><span className="avatar">{initials(currentUser)}</span>{!collapsed && <div className="user-chip-text"><span className="cell-title">{currentUser}</span><span className="muted-sm">{role === "admin" ? "Admin" : "Salesperson"}</span></div>}</div>
+          </div>
+        </header>
+
+        <main className="content">
+          {view === "dashboard" && <DashboardView {...viewProps} />}
+          {view === "customers" && <CustomersView {...viewProps} />}
+          {view === "leads" && <LeadsView {...viewProps} />}
+          {view === "followups" && <FollowupsView {...viewProps} />}
+          {view === "comms" && <CommunicationsView {...viewProps} />}
+          {view === "reports" && <ReportsView {...viewProps} />}
+          {view === "settings" && role === "admin" && <SettingsView {...viewProps} />}
+        </main>
+      </div>
+
+      <div className="toast-stack">{toasts.map((t) => <div key={t.id} className="toast"><CheckCircle2 size={15} /> {t.msg}</div>)}</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
